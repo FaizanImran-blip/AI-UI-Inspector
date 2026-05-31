@@ -1,0 +1,129 @@
+from PIL import Image, ImageEnhance, ImageFilter
+import pytesseract
+import os
+import cv2
+import json
+
+
+def function_open_detection(path):
+    img = cv2.imread(path)
+
+    if img is None:
+        print("ERROR: OpenCV image not loaded")
+        return []
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    edges = cv2.Canny(gray, 50, 150)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    ui_boxes = []
+
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+
+        if w > 30 and h > 20:
+            ui_boxes.append({"type": "ui_box", "x": x, "y": y, "width": w, "height": h})
+
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+    os.makedirs("assets", exist_ok=True)
+
+    cv2.imwrite("assets/opencv_ui_detection.png", img)
+
+    with open("assets/ui_boxes.json", "w", encoding="utf-8") as f:
+        json.dump(ui_boxes, f, indent=4)
+
+    print("OpenCV UI detection saved: assets/opencv_ui_detection.png")
+    print("UI boxes saved: assets/ui_boxes.json")
+
+    return ui_boxes
+
+
+def function_ocr_boxes(path):
+    img = Image.open(path)
+
+    data = pytesseract.image_to_data(
+        img, config="--oem 3 --psm 6", output_type=pytesseract.Output.DICT
+    )
+
+    boxes = []
+
+    for i in range(len(data["text"])):
+        text = data["text"][i].strip()
+
+        if text == "":
+            continue
+
+        x = data["left"][i]
+        y = data["top"][i]
+        w = data["width"][i]
+        h = data["height"][i]
+
+        boxes.append({"text": text, "x": x, "y": y, "width": w, "height": h})
+
+    with open("assets/ocr_boxes.json", "w", encoding="utf-8") as f:
+        json.dump(boxes, f, indent=4)
+
+    print("\nOCR boxes saved: assets/ocr_boxes.json")
+    return boxes
+
+
+def improve_image_quality(input_path, output_path="assets/ui_processed.png"):
+    if not os.path.exists(input_path):
+        print("ERROR: file not found ->", input_path)
+        return None
+
+    img = Image.open(input_path).convert("L")
+
+    w, h = img.size
+    img = img.resize((w * 2, h * 2), Image.LANCZOS)
+
+    img = ImageEnhance.Contrast(img).enhance(2.0)
+
+    img = ImageEnhance.Sharpness(img).enhance(1.2)
+
+    img = img.filter(ImageFilter.MedianFilter(size=3))
+
+    img.save(output_path)
+
+    print("OCR processed grayscale image saved:", output_path)
+    return output_path
+
+
+def function_ocr(path):
+    img = Image.open(path)
+
+    text = pytesseract.image_to_string(img, config="--oem 3 --psm 6")
+
+    print("\nOCR Text:")
+    print(text)
+
+    return text
+
+
+def count_image_size(path):
+    if not os.path.exists(path):
+        print(f"ERROR: file not found -> {path}")
+        return None
+
+    img = Image.open(path)
+    width, height = img.size
+
+    print("PNG loaded successfully:", path)
+    print("Width:", width)
+    print("Height:", height)
+
+    processed_path = improve_image_quality(path)
+ 
+    function_ocr(processed_path)
+    function_ocr_boxes(processed_path) 
+
+    function_open_detection(path)
+
+    return width, height
+
+
+path = "assets/ui.png"
+size = count_image_size(path)

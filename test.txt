@@ -1,0 +1,38 @@
+Screenshot Load → OpenCV preprocessing → UI box/object detection (YOLO/DETR) → OCR text extraction → classify buttons/fields/chats → coordinates mapping → automation/action pipeline
+
+1. Screenshot/Image Load
+2. Image Preprocessing
+   - resize
+   - denoise
+   - contrast/sharpen
+3. UI Object Detection
+=========
+Screenshot
+
+→ OCR
+→ OpenCV layout detection
+→ YOLO/DETR UI detection
+→ Merge results
+→ Coordinates
+→ Action planning
+→ Click/type automation
+→ Verification screenshot
+================
+4. OCR Text Extraction
+   - EasyOCR / PaddleOCR / Tesseract
+   - text + text coordinates
+5. Merge Detection + OCR
+   - jis box ke andar text ho usko attach karo
+6. UI Element Classification
+   - button / input / title / icon / chat / menu / card
+7. Coordinate Mapping
+   - x, y, width, height
+   - center point for click/tap
+8. Automation Decision
+   - konsa button press karna hai
+   - konsa field fill karna hai
+9. Action Execution
+   - pyautogui / adb / Appium / Playwright
+10. Feedback Loop
+   - new screenshot lo
+   - check karo action successful hua ya nahi
