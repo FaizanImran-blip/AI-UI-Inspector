@@ -1,4 +1,4 @@
-Screenshot Load → OpenCV preprocessing → UI box/object detection (YOLO/DETR) → OCR text extraction → classify buttons/fields/chats → coordinates mapping → automation/action pipeline
+long root architecture: Screenshot Load → OpenCV preprocessing → UI box/object detection (YOLO/DETR) → OCR text extraction → classify buttons/fields/chats → coordinates mapping → automation/action pipeline
 
 1. Screenshot/Image Load
 2. Image Preprocessing

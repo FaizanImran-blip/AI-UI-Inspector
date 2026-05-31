@@ -20,6 +20,11 @@ Screenshot → OCR → UI Detection → JSON → Automation Mapping
 → Automation Mapping
 
 
+====================
+Layer 2: Parent Inference
+
+
+
 theory finding small object:
 
 UI small components usually have:
@@ -32,19 +37,9 @@ UI small components usually have:
 
 
 
+right now:Screenshot → OCR → OpenCV UI boxes → clean text boxes → medium/soft container boxes → score-based parent grouping → parent JSON.
 
-
-
-
-
-
-
-
-
-
-
-
-today:
+uidetection:
 Final Clean Boxes
 → Parent Grouping
 → Classification
@@ -52,30 +47,3 @@ Final Clean Boxes
 → Automation Mapping
 
 
-
-{
-   flow:Dono files mil kar ye architecture chala rahi hain:
-
-main file / indent.py
-assets/ui.png
-→ image load + size
-→ OCR preprocessing
-→ OCR text extract
-→ OCR boxes extract
-→ OCR boxes scale down
-→ OpenCV large boxes detect
-→ OpenCV small components detect
-→ text-overlap small boxes remove
-→ medium_grouping() call from parent.py
-→ final_detection.png + final_ui_boxes.json save
-→ parent_grouping() call from parent.py
-
-Phir parent.py:
-
-final_ui_boxes.json
-+ ocr_boxes_scaled.json
-→ parent candidates bante hain
-→ har parent ke andar OCR/text/UI children check hote hain
-→ parent_groups.json save hota hai
-→ parents.png draw hoti hai
-}
