@@ -133,7 +133,6 @@ def parent_grouping(
     ocr_boxes_path="assets/ocr_boxes_scaled.json",
     output_path="assets/parents.png",
 ):
-
     with open(final_boxes_path, "r") as f:
         ui_boxes = json.load(f)
 
@@ -149,9 +148,18 @@ def parent_grouping(
     inferred_boxes = infer_parents_from_ocr(ocr_boxes, img_w, img_h)
 
     ui_boxes = ui_boxes + medium_boxes + soft_boxes + inferred_boxes
-    print("Inferred Parents:", len(inferred_boxes))
+
+    margin = max(5, int(min(img_w, img_h) * 0.015))
+
+    ui_boxes = attach_ocr_to_ui_boxes(
+        ui_boxes,
+        ocr_boxes,
+        margin=margin
+    )
 
     child_boxes = ui_boxes + ocr_boxes
+
+    print("Inferred Parents:", len(inferred_boxes))
     print("Soft Containers:", len(soft_boxes))
 
     def is_noise(b):
@@ -178,8 +186,8 @@ def parent_grouping(
             continue
 
         children = []
-        ocr_count = 0
         ui_count = 0
+        ocr_count = len(parent.get("ocr_children", []))
 
         for child in child_boxes:
             if child == parent:
@@ -230,7 +238,8 @@ def parent_grouping(
             parent_copy["ocr_count"] = ocr_count
             parent_copy["ui_count"] = ui_count
             parent_copy["score"] = score
-            parents.append(parent_copy)
+            if ocr_count >= 1 and len(children) >= 2 and score >= 10:
+                parents.append(parent_copy)
 
     # high score parent first
     parents = sorted(parents, key=lambda p: p["score"], reverse=True)
@@ -293,3 +302,14 @@ def parent_grouping(
     print("Dynamic Margin:", margin)
 
     return clean_parents
+
+
+def attach_ocr_to_ui_boxes(ui_boxes, ocr_boxes, margin=8):
+    for ui in ui_boxes:
+        ui["ocr_children"] = []
+
+        for ocr in ocr_boxes:
+            if inside(ui, ocr, margin=margin):
+                ui["ocr_children"].append(ocr)
+
+    return ui_boxes

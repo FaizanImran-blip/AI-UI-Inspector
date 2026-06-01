@@ -35,15 +35,5 @@ UI small components usually have:
 5. nearby text or parent container
 
 
-
-
-right now:Screenshot → OCR → OpenCV UI boxes → clean text boxes → medium/soft container boxes → score-based parent grouping → parent JSON.
-
-uidetection:
-Final Clean Boxes
-→ Parent Grouping
-→ Classification
-→ Structured UI JSON
-→ Automation Mapping
-
-
+target:
+Screenshot → OCR text → OpenCV boxes → text ko boxes mein attach → possible parents → score → AI final parent select
