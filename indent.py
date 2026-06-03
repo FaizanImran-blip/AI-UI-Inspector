@@ -37,20 +37,24 @@ def function_open_detection(path):
         x, y, w, h = cv2.boundingRect(cnt)
         area = w * h
 
-        if area < 300:
+        if area < 2300:
             continue
-
+       
         if w < 10 or h < 10:
             continue
+        aspect = w / h
 
+        if aspect > 4.5 or aspect < 0.25:
+            continue
         if w > img.shape[1] * 0.90 and h > img.shape[0] * 0.90:
             continue
+        if area < 1500:
+            continue
+
         if area > 30000:
             box_type = "parent_box"
-        elif area > 1500:
-            box_type = "element_box"
         else:
-            box_type = "small_box"
+            box_type = "element_box"
 
         boxes.append(
             {
