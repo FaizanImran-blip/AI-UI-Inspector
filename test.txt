@@ -36,3 +36,6 @@ Screenshot
 10. Feedback Loop
    - new screenshot lo
    - check karo action successful hua ya nahi
+
+
+architecture fix:OpenCV boxes + OCR boxes + UIAutomator dump XML merge → real elements detect → phir parent-child tree → phir automation engine.

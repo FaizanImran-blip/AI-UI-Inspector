@@ -1,6 +1,6 @@
 from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
-
+import ui
 import os
 import cv2
 from parent import parent_grouping, medium_grouping
@@ -11,69 +11,143 @@ def function_open_detection(path):
     img = cv2.imread(path)
 
     if img is None:
-        print("ERROR: OpenCV image not loaded")
+        print("ERROR: OpenCV image not loaded:", path)
         return []
 
     original = img.copy()
+    debug_img = img.copy()
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    """
-    Large Boxes Detection
-    Detecting big UI containers from screenshot
-    """
-    edges = cv2.Canny(gray, 40, 120)
-    contours_large, _ = cv2.findContours(
-        edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-
-    ui_boxes = []
-
-    for cnt in contours_large:
-        x, y, w, h = cv2.boundingRect(cnt)
-        area = w * h
-
-        if w > 30 and h > 20 and area > 800:
-            ui_boxes.append(
-                {"type": "large_ui_box", "x": x, "y": y, "width": w, "height": h}
-            )
-            cv2.rectangle(original, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-    # ---------- SMALL COMPONENT DETECTION ----------
-    blur = cv2.GaussianBlur(gray, (3, 3), 0)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
     thresh = cv2.adaptiveThreshold(
-        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2
+        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 4
     )
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-    morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (8, 5))
+    merged_img = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-    contours_small, _ = cv2.findContours(
-        morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    contours, hierarchy = cv2.findContours(
+        merged_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
     )
 
-    for cnt in contours_small:
+    boxes = []
+
+    for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
         area = w * h
 
-        if 6 <= w <= 80 and 6 <= h <= 80 and 30 <= area <= 3000:
-            ui_boxes.append(
-                {"type": "small_component", "x": x, "y": y, "width": w, "height": h}
-            )
-            cv2.rectangle(original, (x, y), (x + w, y + h), (255, 0, 0), 1)
+        if area < 300:
+            continue
+
+        if w < 10 or h < 10:
+            continue
+
+        if w > img.shape[1] * 0.90 and h > img.shape[0] * 0.90:
+            continue
+        if area > 30000:
+            box_type = "parent_box"
+        elif area > 1500:
+            box_type = "element_box"
+        else:
+            box_type = "small_box"
+
+        boxes.append(
+            {
+                "type": box_type,
+                "x": int(x),
+                "y": int(y),
+                "width": int(w),
+                "height": int(h),
+            }
+        )
 
     os.makedirs("assets", exist_ok=True)
 
+    for i, b in enumerate(boxes):
+        x, y, w, h = b["x"], b["y"], b["width"], b["height"]
+
+        cv2.rectangle(original, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        cv2.rectangle(debug_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(
+            debug_img,
+            str(i),
+            (x, max(15, y - 5)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 0, 255),
+            1,
+        )
+
     cv2.imwrite("assets/opencv_ui_detection.png", original)
+    cv2.imwrite("assets/debug_numbered_boxes.png", debug_img)
 
     with open("assets/ui_boxes.json", "w", encoding="utf-8") as f:
-        json.dump(ui_boxes, f, indent=4)
+        json.dump(boxes, f, indent=4)
 
     print("OpenCV UI detection saved: assets/opencv_ui_detection.png")
+    print("Debug numbered boxes saved: assets/debug_numbered_boxes.png")
     print("UI boxes saved: assets/ui_boxes.json")
-    print("Total boxes:", len(ui_boxes))
+    print("Total boxes:", len(boxes))
 
-    return ui_boxes
+    return boxes
+
+
+def remove_duplicate_boxes(boxes):
+    final = []
+
+    for box in boxes:
+        keep = True
+
+        for other in final:
+            if is_inside(box, other):
+                keep = False
+                break
+
+            if iou(box, other) > 0.75:
+                keep = False
+                break
+
+        if keep:
+            final.append(box)
+
+    return final
+
+
+def is_inside(a, b):
+    ax1, ay1 = a["x"], a["y"]
+    ax2, ay2 = a["x"] + a["width"], a["y"] + a["height"]
+
+    bx1, by1 = b["x"], b["y"]
+    bx2, by2 = b["x"] + b["width"], b["y"] + b["height"]
+
+    return ax1 >= bx1 and ay1 >= by1 and ax2 <= bx2 and ay2 <= by2
+
+
+def iou(a, b):
+    ax1, ay1 = a["x"], a["y"]
+    ax2, ay2 = a["x"] + a["width"], a["y"] + a["height"]
+
+    bx1, by1 = b["x"], b["y"]
+    bx2, by2 = b["x"] + b["width"], b["y"] + b["height"]
+
+    inter_x1 = max(ax1, bx1)
+    inter_y1 = max(ay1, by1)
+    inter_x2 = min(ax2, bx2)
+    inter_y2 = min(ay2, by2)
+
+    inter_area = max(0, inter_x2 - inter_x1) * max(0, inter_y2 - inter_y1)
+
+    area_a = a["width"] * a["height"]
+    area_b = b["width"] * b["height"]
+
+    union = area_a + area_b - inter_area
+
+    if union == 0:
+        return 0
+
+    return inter_area / union
 
 
 def function_ocr_boxes(path):
@@ -259,7 +333,7 @@ def count_image_size(path):
     draw_final_boxes(path, final_boxes)
 
     parent_grouping()
-
+    ui.make_custom_ui_xml()
     return width, height
 
 

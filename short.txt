@@ -36,4 +36,24 @@ UI small components usually have:
 
 
 target:
-Screenshot → OCR text → OpenCV boxes → text ko boxes mein attach → possible parents → score → AI final parent select
+screenshot=>flutterappsame(screenshot)=>UIAutomator XML dump+ OCR + OpenCV → merge → duplicate remove → classify → parent-child tree → action engine
+
+
+1. Crop app screen
+2. UIAutomator XML dump = real clickable nodes
+3. OCR = missing text
+4. OpenCV = icons/cards/buttons shapes
+5. Merge by IoU/overlap
+6. Remove duplicates
+7. Classify element: button/input/text/card/icon/navbar
+8. Build parent-child tree
+9. Action engine: click/type/scroll
+10. Verify after action with new screenshot
+
+
+
+custom_uiautomation.xml ko parent JSON se mat banao — pehle real adb uiautomator dump XML lo, usko JSON banao, phir is JSON ko ocr_boxes.json + ui_boxes.json/final_ui_boxes.json + parent_groups.json ke sath merge karo.
+
+
+option a:dump xml from screenshot like ui,
+option b:user dump xml or go furtur=>
