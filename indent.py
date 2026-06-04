@@ -8,6 +8,7 @@ import json
 
 
 def function_open_detection(path):
+    os.makedirs("assets", exist_ok=True)
     img = cv2.imread(path)
 
     if img is None:
@@ -21,11 +22,12 @@ def function_open_detection(path):
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
     thresh = cv2.adaptiveThreshold(
-        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 4
+        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 6
     )
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (8, 5))
-    merged_img = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (18, 6))
+    merged_img = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
+    cv2.imwrite("assets/thresh.png", thresh)
+    cv2.imwrite("assets/merged_img.png", merged_img)
 
     contours, hierarchy = cv2.findContours(
         merged_img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
@@ -36,22 +38,22 @@ def function_open_detection(path):
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
         area = w * h
-
-        if area < 2300:
+        if not is_valid_ui_box(x, y, w, h, img):
             continue
-       
+
         if w < 10 or h < 10:
             continue
         aspect = w / h
 
-        if aspect > 4.5 or aspect < 0.25:
+        if aspect > 8 or aspect < 0.15:
             continue
         if w > img.shape[1] * 0.90 and h > img.shape[0] * 0.90:
             continue
-        if area < 1500:
-            continue
+        img_h, img_w = img.shape[:2]
 
-        if area > 30000:
+        if y > img_h * 0.88:
+            box_type = "bottom_nav"
+        elif area > 10000:
             box_type = "parent_box"
         else:
             box_type = "element_box"
@@ -65,8 +67,7 @@ def function_open_detection(path):
                 "height": int(h),
             }
         )
-
-    os.makedirs("assets", exist_ok=True)
+    boxes = remove_duplicate_boxes(boxes)
 
     for i, b in enumerate(boxes):
         x, y, w, h = b["x"], b["y"], b["width"], b["height"]
@@ -98,6 +99,24 @@ def function_open_detection(path):
     return boxes
 
 
+def is_valid_ui_box(x, y, w, h, img):
+    area = w * h
+    img_h, img_w = img.shape[:2]
+
+    if area < 1500:
+        return False
+    if w < 25 or h < 18:
+        return False
+    if w > img_w * 0.95 and h > img_h * 0.95:
+        return False
+
+    aspect = w / h
+    if aspect > 8 or aspect < 0.15:
+        return False
+
+    return True
+
+
 def remove_duplicate_boxes(boxes):
     final = []
 
@@ -105,9 +124,9 @@ def remove_duplicate_boxes(boxes):
         keep = True
 
         for other in final:
-            if is_inside(box, other):
-                keep = False
-                break
+            # if is_inside(box, other):
+            #  keep = False
+            #  break
 
             if iou(box, other) > 0.75:
                 keep = False
@@ -218,7 +237,7 @@ def remove_text_components(ui_boxes, ocr_boxes):
     clean_boxes = []
 
     for ui_box in ui_boxes:
-        if ui_box["type"] == "large_ui_box":
+        if ui_box["type"] == "parent_box":
             clean_boxes.append(ui_box)
             continue
 
@@ -277,7 +296,7 @@ def draw_final_boxes(path, final_boxes, output_path="assets/final_detection.png"
         w = box["width"]
         h = box["height"]
 
-        if box["type"] == "large_ui_box":
+        if box["type"] == "parent_box":
             color = (0, 255, 0)
             thickness = 2
 

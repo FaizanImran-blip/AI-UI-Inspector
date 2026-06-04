@@ -3,7 +3,18 @@ AI UI Inspector
 Screenshot → OCR → UI Detection → JSON → Automation Mapping
 
 
+reproduce bugs:
+if aspect > 4.5 or aspect < 0.25:
+if aspect > 8 or aspect < 0.15:
+if y > img_h * 0.88:
+if is_inside(box, other):
+    keep = False   chk.delete
 
+    merged_img.png mein rounded card boundary dikh rahi hai, lekin 
+    full rows/card green box nahi ban raha. Matlab contour + duplicate filter 
+    se parent miss ho raha hai.
+
+    
 ===============================
 3. UI Element Detection
    - OpenCV layout detection
