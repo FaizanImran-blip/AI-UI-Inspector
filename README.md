@@ -1,5 +1,5 @@
 # AI UI Inspector
--
+
 AI UI Inspector is a Python-based computer vision tool that detects UI elements from screenshots and generates structured JSON for UI automation.
 
 ## Features
