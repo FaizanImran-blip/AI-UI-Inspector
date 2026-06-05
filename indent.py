@@ -45,7 +45,7 @@ def function_open_detection(path):
             continue
         aspect = w / h
 
-        if aspect > 8 or aspect < 0.15:
+        if aspect > 8 or aspect < 0.10:
             continue
         if w > img.shape[1] * 0.90 and h > img.shape[0] * 0.90:
             continue
@@ -67,6 +67,9 @@ def function_open_detection(path):
                 "height": int(h),
             }
         )
+    boxes = remove_duplicate_boxes(boxes)
+    ocr_boxes = function_ocr_boxes(path)
+    boxes = remove_text_components(boxes, ocr_boxes)
     boxes = remove_duplicate_boxes(boxes)
 
     for i, b in enumerate(boxes):
@@ -120,13 +123,15 @@ def is_valid_ui_box(x, y, w, h, img):
 def remove_duplicate_boxes(boxes):
     final = []
 
+    boxes = sorted(boxes, key=lambda b: b["width"] * b["height"], reverse=True)
+
     for box in boxes:
         keep = True
 
         for other in final:
-            # if is_inside(box, other):
-            #  keep = False
-            #  break
+            if is_inside(box, other):
+                keep = False
+                break
 
             if iou(box, other) > 0.75:
                 keep = False
