@@ -30,13 +30,13 @@ parent_groups.json + parents.png
 ui.py
    ↓
 custom UI XML
-
-
-current pipeline:
-
-Screenshot
-→ OCR
-→ OpenCV rough boxes
-→ remove duplicate boxes
-→ parent grouping
-→ JSON/XML output
+flow:
+ui.xml
+ ↓
+inspector_output.json
+ ↓
+draw_boxes.py
+ ↓
+inspector.png
+======================
+current pipeline:XML dump → XML parser → screenshot par XML boxes draw → inspector JSON → automation action
