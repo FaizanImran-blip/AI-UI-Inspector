@@ -37,6 +37,10 @@ def inside(parent, child, margin=8):
 
 def soft_container_detection(image_path="assets/ui.png"):
     img = cv2.imread(image_path)
+    if img is None:
+        print("ERROR: image not loaded:", image_path)
+        return []
+
     img_h, img_w = img.shape[:2]
     screen_area = img_w * img_h
 
@@ -133,31 +137,29 @@ def parent_grouping(
     ocr_boxes_path="assets/ocr_boxes_scaled.json",
     output_path="assets/parents.png",
 ):
+
     with open(final_boxes_path, "r") as f:
         ui_boxes = json.load(f)
+    img = cv2.imread(image_path)
+    if img is None:
+        print("ERROR: image not loaded:", image_path)
+        return []
 
+    img_h, img_w = img.shape[:2]
+    screen_area = img_w * img_h
     with open(ocr_boxes_path, "r") as f:
         ocr_boxes = json.load(f)
 
-    img = cv2.imread(image_path)
-    img_h, img_w = img.shape[:2]
-    screen_area = img_w * img_h
-
-    medium_boxes = medium_grouping(ui_boxes)
     soft_boxes = soft_container_detection(image_path)
-    inferred_boxes = infer_parents_from_ocr(ocr_boxes, img_w, img_h)
+    inferred_boxes = []  # abhi use nahi karna
 
-    ui_boxes = ui_boxes + medium_boxes + soft_boxes + inferred_boxes
+    ui_boxes = ui_boxes + soft_boxes
 
     margin = max(5, int(min(img_w, img_h) * 0.015))
 
-    ui_boxes = attach_ocr_to_ui_boxes(
-        ui_boxes,
-        ocr_boxes,
-        margin=margin
-    )
+    ui_boxes = attach_ocr_to_ui_boxes(ui_boxes, ocr_boxes, margin=margin)
 
-    child_boxes = ui_boxes + ocr_boxes
+    child_boxes = ocr_boxes
 
     print("Inferred Parents:", len(inferred_boxes))
     print("Soft Containers:", len(soft_boxes))
@@ -187,7 +189,7 @@ def parent_grouping(
 
         children = []
         ui_count = 0
-        ocr_count = len(parent.get("ocr_children", []))
+        ocr_count = 0
 
         for child in child_boxes:
             if child == parent:
@@ -230,17 +232,27 @@ def parent_grouping(
         # minimum evidence
         if len(children) < 2:
             continue
-
+        # parent wahi hoga jisme OCR text + UI children dono hon
+        if ocr_count < 2:
+            continue
         if score >= 12:
             parent_copy = parent.copy()
+
+            if (
+                parent_copy["width"] > img_w * 0.45
+                and parent_copy["height"] > img_h * 0.10
+                and parent_copy["height"] < img_h * 0.25
+            ):
+                parent_copy["x"] = 20
+                parent_copy["width"] = img_w - 40
+
             parent_copy["children"] = children
             parent_copy["children_count"] = len(children)
             parent_copy["ocr_count"] = ocr_count
             parent_copy["ui_count"] = ui_count
             parent_copy["score"] = score
-            if ocr_count >= 1 and len(children) >= 2 and score >= 10:
-                parents.append(parent_copy)
 
+            parents.append(parent_copy)
     # high score parent first
     parents = sorted(parents, key=lambda p: p["score"], reverse=True)
 
@@ -256,6 +268,7 @@ def parent_grouping(
 
         for other in clean_parents:
             if inside(other, p, margin=margin):
+                keep = False
                 # agar p existing parent ke andar hai aur score low hai to skip
                 if p["score"] <= other["score"]:
                     keep = False
@@ -298,7 +311,7 @@ def parent_grouping(
     print("Parent JSON saved: assets/parent_groups.json")
     print("Total parents:", len(clean_parents))
     print("Original UI Boxes:", len(ui_boxes))
-    print("Medium Boxes:", len(medium_boxes))
+
     print("Dynamic Margin:", margin)
 
     return clean_parents

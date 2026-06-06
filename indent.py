@@ -1,5 +1,6 @@
 from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
+from text_mapper import attach_text_to_ui_boxes
 import ui
 import os
 import cv2
@@ -24,8 +25,8 @@ def function_open_detection(path):
     thresh = cv2.adaptiveThreshold(
         blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 6
     )
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (18, 6))
-    merged_img = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (35, 18))
+    merged_img = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
     cv2.imwrite("assets/thresh.png", thresh)
     cv2.imwrite("assets/merged_img.png", merged_img)
 
@@ -67,13 +68,28 @@ def function_open_detection(path):
                 "height": int(h),
             }
         )
-    boxes = remove_duplicate_boxes(boxes)
-    ocr_boxes = function_ocr_boxes(path)
-    boxes = remove_text_components(boxes, ocr_boxes)
+
+    ocr_processed_path = improve_image_quality(path)
+    ocr_boxes = function_ocr_boxes(ocr_processed_path)
+    ocr_boxes = scale_ocr_boxes(ocr_boxes, scale=2)
+
+    boxes = attach_text_to_ui_boxes(boxes, ocr_boxes)
     boxes = remove_duplicate_boxes(boxes)
 
     for i, b in enumerate(boxes):
         x, y, w, h = b["x"], b["y"], b["width"], b["height"]
+
+        text = b.get("text", "")
+        img_h, img_w = img.shape[:2]
+
+        if "You" in text:
+            b["type"] = "user_message"
+        elif "Mentor AI" in text:
+            b["type"] = "ai_message"
+        elif y > img_h * 0.90:
+            b["type"] = "input_bar"
+        else:
+            b["type"] = "ui_element"
 
         cv2.rectangle(original, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
@@ -353,10 +369,7 @@ def count_image_size(path):
 
     ui_boxes = function_open_detection(path)
 
-    final_boxes = remove_text_components(ui_boxes, ocr_boxes_scaled)
-
-    medium_boxes = medium_grouping(final_boxes)
-    final_boxes.extend(medium_boxes)
+    final_boxes = remove_duplicate_boxes(ui_boxes)
 
     draw_final_boxes(path, final_boxes)
 

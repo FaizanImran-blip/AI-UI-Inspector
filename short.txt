@@ -1,65 +1,42 @@
-AI UI Inspector
-
-Screenshot → OCR → UI Detection → JSON → Automation Mapping
-
-
-bugs-remove:
-OpenCV boxes = parent/card detection
-OCR boxes = text detection
-Grouping = text ko parent card ke andar attach karo
-Classifier = button/card/input/bottom_nav/message classify karo
-
-    
-===============================
-3. UI Element Detection
-   - OpenCV layout detection
-   - optional YOLO/DETR model later
-→ Detect Small Components
-   - circles
-   - icons
-   - buttons
-   - navbar items
-→ Merge Boxes
-→ Classify:
-   button / input / card / text / icon / navbar
-→ Final JSON
-→ Automation Mapping
-
-
-====================
-Layer 2: Parent Inference
+Flutter app screenshot
+↓
+ADB / Appium / uiautomator dump
+↓
+real XML hierarchy
+↓
+OCR/OpenCV only fallback
+↓
+automation action. next architecture,
 
 
 
-theory finding small object:
 
-UI small components usually have:
-1. clear edges
-2. fixed small bounding boxes
-3. icon-like shapes
-4. repeated patterns
-5. nearby text or parent container
-
-
-target:
-screenshot=>flutterappsame(screenshot)=>UIAutomator XML dump+ OCR + OpenCV → merge → duplicate remove → classify → parent-child tree → action engine
-
-
-1. Crop app screen
-2. UIAutomator XML dump = real clickable nodes
-3. OCR = missing text
-4. OpenCV = icons/cards/buttons shapes
-5. Merge by IoU/overlap
-6. Remove duplicates
-7. Classify element: button/input/text/card/icon/navbar
-8. Build parent-child tree
-9. Action engine: click/type/scroll
-10. Verify after action with new screenshot
+done:assets/ui.png
+   ↓
+indent.py
+   ↓
+image preprocessing
+   ↓
+OCR text + OCR boxes
+   ↓
+OpenCV rough UI boxes
+   ↓
+final_ui_boxes.json
+   ↓
+parent.py parent_grouping()
+   ↓
+parent_groups.json + parents.png
+   ↓
+ui.py
+   ↓
+custom UI XML
 
 
+current pipeline:
 
-custom_uiautomation.xml ko parent JSON se mat banao — pehle real adb uiautomator dump XML lo, usko JSON banao, phir is JSON ko ocr_boxes.json + ui_boxes.json/final_ui_boxes.json + parent_groups.json ke sath merge karo.
-
-
-option a:dump xml from screenshot like ui,
-option b:user dump xml or go furtur=>
+Screenshot
+→ OCR
+→ OpenCV rough boxes
+→ remove duplicate boxes
+→ parent grouping
+→ JSON/XML output
