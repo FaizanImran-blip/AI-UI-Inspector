@@ -38,6 +38,7 @@ def function_open_detection(path):
 
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
+        print("Contour:", x, y, w, h, "area=", w * h)
         area = w * h
         if not is_valid_ui_box(x, y, w, h, img):
             continue
@@ -54,11 +55,21 @@ def function_open_detection(path):
 
         if y > img_h * 0.88:
             box_type = "bottom_nav"
-        elif area > 10000:
+        elif area > 15000:
             box_type = "parent_box"
         else:
             box_type = "element_box"
 
+        print(
+            "TYPE:", box_type,
+            "x=", x,
+            "y=", y,
+            "w=", w,
+            "h=", h,
+            "area=", area
+        )
+
+        print("ADD BOX:", x, y, w, h, "area=", area)
         boxes.append(
             {
                 "type": box_type,
@@ -74,7 +85,15 @@ def function_open_detection(path):
     ocr_boxes = scale_ocr_boxes(ocr_boxes, scale=2)
 
     boxes = attach_text_to_ui_boxes(boxes, ocr_boxes)
+
+    boxes = remove_text_components(boxes, ocr_boxes)
+
+    before = len(boxes)
+    print("Before dedupe:", before)
+
     boxes = remove_duplicate_boxes(boxes)
+
+    print("After dedupe:", len(boxes))
 
     for i, b in enumerate(boxes):
         x, y, w, h = b["x"], b["y"], b["width"], b["height"]
@@ -145,14 +164,15 @@ def remove_duplicate_boxes(boxes):
         keep = True
 
         for other in final:
-            if is_inside(box, other):
-                keep = False
-                break
+            # if is_inside(box, other):
+            #   print("REMOVED INSIDE:", box)
+            #  keep = False
+            #  break
 
             if iou(box, other) > 0.75:
+                print("REMOVED IOU:", box)
                 keep = False
                 break
-
         if keep:
             final.append(box)
 
@@ -227,6 +247,9 @@ def scale_ocr_boxes(boxes, scale=2):
     scaled = []
 
     for b in boxes:
+        print(
+            "TEXT ATTACHED:", b["x"], b["y"], b["width"], b["height"], b.get("text", "")
+        )
         scaled.append(
             {
                 "text": b["text"],
@@ -258,7 +281,9 @@ def remove_text_components(ui_boxes, ocr_boxes):
     clean_boxes = []
 
     for ui_box in ui_boxes:
+        print("CHECK UI:", ui_box)
         if ui_box["type"] == "parent_box":
+            print("PARENT SKIPPED:", ui_box)
             clean_boxes.append(ui_box)
             continue
 
@@ -266,6 +291,8 @@ def remove_text_components(ui_boxes, ocr_boxes):
 
         for text_box in ocr_boxes:
             if overlap(ui_box, text_box):
+                print("OVERLAP WITH:", text_box)
+                print("TEXT BOX REMOVED:", ui_box)
                 is_text = True
                 break
 
