@@ -1,13 +1,17 @@
-Flutter app screenshot
-↓
-ADB / Appium / uiautomator dump
-↓
-real XML hierarchy
-↓
-OCR/OpenCV only fallback
-↓
-automation action. next architecture,
+goal:
 
+UI Inspector
+├─ Screen
+├─ Cards
+├─ Buttons
+├─ Inputs
+├─ Icons
+├─ Text
+├─ Parent
+├─ Child
+├─ Clickable
+├─ Scrollable
+└─ Automation Actions
 
 
 
@@ -37,6 +41,10 @@ inspector_output.json
  ↓
 draw_boxes.py
  ↓
-inspector.png
+image_detection.png
 ======================
 current pipeline:XML dump → XML parser → screenshot par XML boxes draw → inspector JSON → automation action
+
+
+
+flow-right now: indent.py  =>go first pipline,with parent.py ,parser.py  =>screenshot on flutter app run, or detect ui /all the debugs images are in assets.folder also in terminal flow

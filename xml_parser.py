@@ -3,6 +3,7 @@ import json
 import xml.etree.ElementTree as ET
 
 
+
 def parse_bounds(bounds):
     # "[49,278][582,367]" -> x,y,width,height
     bounds = bounds.replace("[", "").replace("]", ",")
@@ -66,4 +67,6 @@ def parse_ui_xml(input_xml="ui.xml", output_json="assets/xml/inspector_output.js
 
 
 if __name__ == "__main__":
-    parse_ui_xml()
+    parse_ui_xml(
+        input_xml="assets/xml/ui.xml", output_json="assets/xml/inspector_output.json"
+    )
